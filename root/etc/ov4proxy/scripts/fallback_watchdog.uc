@@ -179,6 +179,14 @@ function switch_selector(group, node_tag) {
 	return is_success(res);
 }
 
+function get_preferred_node(group) {
+	for (let node in group.nodes)
+		if (probe_node(node, group))
+			return node;
+
+	return null;
+}
+
 function check_group(group) {
 	const selector = get_selector_state(group.selector_tag, group.timeout);
 	if (isEmpty(selector)) {
@@ -187,33 +195,21 @@ function check_group(group) {
 	}
 
 	const current = selector.now;
-	const current_index = index(group.nodes, current);
-	if (~current_index && probe_node(current, group))
-		return;
-
-	let candidates = [];
-	if (~current_index) {
-		for (let i = current_index + 1; i < length(group.nodes); i++)
-			push(candidates, group.nodes[i]);
-		for (let i = 0; i < current_index; i++)
-			push(candidates, group.nodes[i]);
-	} else
-		candidates = group.nodes;
-
-	for (let node in candidates) {
-		if (!probe_node(node, group))
-			continue;
-
-		if (switch_selector(group, node)) {
-			log(sprintf('Selector %s switched to %s.', group.selector_tag, node));
-			return;
-		}
-
-		log(sprintf('Selector %s failed to switch to %s.', group.selector_tag, node));
+	const preferred = get_preferred_node(group);
+	if (isEmpty(preferred)) {
+		log(sprintf('Selector %s has no healthy fallback node, keeping %s.', group.selector_tag, current || 'current selection'));
 		return;
 	}
 
-	log(sprintf('Selector %s has no healthy fallback node, keeping %s.', group.selector_tag, current || 'current selection'));
+	if (preferred === current)
+		return;
+
+	if (switch_selector(group, preferred)) {
+		log(sprintf('Selector %s switched from %s to %s.', group.selector_tag, current || 'current selection', preferred));
+		return;
+	}
+
+	log(sprintf('Selector %s failed to switch from %s to %s.', group.selector_tag, current || 'current selection', preferred));
 }
 
 function load_groups() {
