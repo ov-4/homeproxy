@@ -1330,6 +1330,18 @@ msgstr ""
 msgid "Main node"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:127
+#: htdocs/luci-static/resources/view/homeproxy/client.js:178
+#: htdocs/luci-static/resources/view/homeproxy/client.js:468
+msgid "Fallback"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:153
+#: htdocs/luci-static/resources/view/homeproxy/client.js:204
+#: htdocs/luci-static/resources/view/homeproxy/client.js:614
+msgid "Fallback nodes"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:662
 msgid "Make IP CIDR in rule set used to match the source IP."
 msgstr ""
@@ -2417,6 +2429,20 @@ msgstr ""
 msgid "Test tolerance"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:167
+#: htdocs/luci-static/resources/view/homeproxy/client.js:218
+#: htdocs/luci-static/resources/view/homeproxy/client.js:648
+msgid "Probe interval"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:655
+msgid "Probe timeout"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:628
+msgid "Probe URL"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/homeproxy/server.js:628
 msgid "The ACME CA provider to use."
 msgstr ""
@@ -2437,6 +2463,26 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:511
 msgid "The URL to test."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:154
+#: htdocs/luci-static/resources/view/homeproxy/client.js:205
+#: htdocs/luci-static/resources/view/homeproxy/client.js:615
+msgid "List of nodes for fallback in order."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:168
+#: htdocs/luci-static/resources/view/homeproxy/client.js:219
+#: htdocs/luci-static/resources/view/homeproxy/client.js:649
+msgid "The health check interval in seconds."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:656
+msgid "The health check timeout in milliseconds."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:629
+msgid "The URL to probe."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:958

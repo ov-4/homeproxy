@@ -80,6 +80,23 @@ function log(...args) {
 	logfile.close();
 }
 
+function filter_existing_nodes(nodes, list_name) {
+	return filter(nodes || [], (v) => {
+		if (!uci.get(uciconfig, v)) {
+			log(sprintf('Node %s is gone, removing from %s list.', v, list_name));
+			return false;
+		}
+		return true;
+	});
+}
+
+function sync_node_list(section, option, nodes) {
+	if (length(nodes))
+		uci.set(uciconfig, section, option, nodes);
+	else
+		uci.delete(uciconfig, section, option);
+}
+
 function parse_uri(uri) {
 	let config, url, params;
 
@@ -592,11 +609,12 @@ function main() {
 		});
 	uci.commit(uciconfig);
 
-	let need_restart = (via_proxy !== '1');
+	let need_restart = (via_proxy !== '1'),
+	    config_changed = false;
 	if (!isEmpty(main_node)) {
 		const first_server = uci.get_first(uciconfig, ucinode);
 		if (first_server) {
-			let main_urltest_nodes;
+			let main_urltest_nodes, main_fallback_nodes, main_fallback_nodes_raw;
 			if (main_node === 'urltest') {
 				main_urltest_nodes = filter(uci.get(uciconfig, ucimain, 'main_urltest_nodes'), (v) => {
 					if (!uci.get(uciconfig, v)) {
@@ -605,18 +623,27 @@ function main() {
 					}
 					return true;
 				});
+			} else if (main_node === 'fallback') {
+				main_fallback_nodes_raw = uci.get(uciconfig, ucimain, 'main_fallback_nodes') || [];
+				main_fallback_nodes = filter_existing_nodes(main_fallback_nodes_raw, 'main fallback');
+				if (length(main_fallback_nodes_raw) !== length(main_fallback_nodes)) {
+					sync_node_list(ucimain, 'main_fallback_nodes', main_fallback_nodes);
+					config_changed = true;
+					need_restart = true;
+				}
 			}
 
-			if ((main_node === 'urltest') ? !length(main_urltest_nodes) : !uci.get(uciconfig, main_node)) {
+			if ((main_node === 'urltest') ? !length(main_urltest_nodes) :
+			    (main_node === 'fallback') ? !length(main_fallback_nodes) : !uci.get(uciconfig, main_node)) {
 				uci.set(uciconfig, ucimain, 'main_node', first_server);
-				uci.commit(uciconfig);
+				config_changed = true;
 				need_restart = true;
 
 				log('Main node is gone, switching to the first node.');
 			}
 
 			if (!isEmpty(main_udp_node) && main_udp_node !== 'same') {
-				let main_udp_urltest_nodes;
+				let main_udp_urltest_nodes, main_udp_fallback_nodes, main_udp_fallback_nodes_raw;
 				if (main_udp_node === 'urltest') {
 					main_udp_urltest_nodes = filter(uci.get(uciconfig, ucimain, 'main_udp_urltest_nodes'), (v) => {
 						if (!uci.get(uciconfig, v)) {
@@ -625,11 +652,20 @@ function main() {
 						}
 						return true;
 					});
+				} else if (main_udp_node === 'fallback') {
+					main_udp_fallback_nodes_raw = uci.get(uciconfig, ucimain, 'main_udp_fallback_nodes') || [];
+					main_udp_fallback_nodes = filter_existing_nodes(main_udp_fallback_nodes_raw, 'main UDP fallback');
+					if (length(main_udp_fallback_nodes_raw) !== length(main_udp_fallback_nodes)) {
+						sync_node_list(ucimain, 'main_udp_fallback_nodes', main_udp_fallback_nodes);
+						config_changed = true;
+						need_restart = true;
+					}
 				}
 
-				if ((main_udp_node === 'urltest') ? !length(main_udp_urltest_nodes) : !uci.get(uciconfig, main_udp_node)) {
+				if ((main_udp_node === 'urltest') ? !length(main_udp_urltest_nodes) :
+				    (main_udp_node === 'fallback') ? !length(main_udp_fallback_nodes) : !uci.get(uciconfig, main_udp_node)) {
 					uci.set(uciconfig, ucimain, 'main_udp_node', first_server);
-					uci.commit(uciconfig);
+					config_changed = true;
 					need_restart = true;
 
 					log('Main UDP node is gone, switching to the first node.');
@@ -638,12 +674,40 @@ function main() {
 		} else {
 			uci.set(uciconfig, ucimain, 'main_node', 'nil');
 			uci.set(uciconfig, ucimain, 'main_udp_node', 'nil');
-			uci.commit(uciconfig);
+			config_changed = true;
 			need_restart = true;
 
 			log('No available node, disable tproxy.');
 		}
 	}
+
+	uci.foreach(uciconfig, 'routing_node', (cfg) => {
+		if (cfg.node !== 'fallback')
+			return;
+
+		const fallback_nodes_raw = cfg.fallback_nodes || [];
+		const fallback_nodes = filter_existing_nodes(fallback_nodes_raw, 'fallback');
+		const active = (routing_mode === 'custom' && cfg.enabled === '1');
+
+		if (length(fallback_nodes_raw) !== length(fallback_nodes)) {
+			sync_node_list(cfg['.name'], 'fallback_nodes', fallback_nodes);
+			config_changed = true;
+			if (active)
+				need_restart = true;
+		}
+
+		if (!length(fallback_nodes) && cfg.enabled !== '0') {
+			uci.set(uciconfig, cfg['.name'], 'enabled', '0');
+			config_changed = true;
+			if (active)
+				need_restart = true;
+
+			log(sprintf('Routing node %s has no available fallback node, disabling it.', cfg.label || cfg['.name']));
+		}
+	});
+
+	if (config_changed)
+		uci.commit(uciconfig);
 
 	if (need_restart) {
 		log('Restarting service...');

@@ -1359,6 +1359,18 @@ msgstr "主 UDP 节点"
 msgid "Main node"
 msgstr "主节点"
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:127
+#: htdocs/luci-static/resources/view/homeproxy/client.js:178
+#: htdocs/luci-static/resources/view/homeproxy/client.js:468
+msgid "Fallback"
+msgstr "Fallback"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:153
+#: htdocs/luci-static/resources/view/homeproxy/client.js:204
+#: htdocs/luci-static/resources/view/homeproxy/client.js:614
+msgid "Fallback nodes"
+msgstr "Fallback nodes"
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:662
 msgid "Make IP CIDR in rule set used to match the source IP."
 msgstr "使规则集中的 IP CIDR 用于匹配源 IP。"
@@ -2463,6 +2475,20 @@ msgstr "测试间隔时间必须小于或等于空闲超时时间。"
 msgid "Test tolerance"
 msgstr "测试容差"
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:167
+#: htdocs/luci-static/resources/view/homeproxy/client.js:218
+#: htdocs/luci-static/resources/view/homeproxy/client.js:648
+msgid "Probe interval"
+msgstr "探测间隔"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:655
+msgid "Probe timeout"
+msgstr "探测超时"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:628
+msgid "Probe URL"
+msgstr "探测 URL"
+
 #: htdocs/luci-static/resources/view/homeproxy/server.js:628
 msgid "The ACME CA provider to use."
 msgstr "使用的 ACME CA 颁发机构。"
@@ -2484,6 +2510,26 @@ msgstr "用于接收数据的 QUIC 流级流控制窗口。"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:511
 msgid "The URL to test."
 msgstr "用于测试的 URL。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:154
+#: htdocs/luci-static/resources/view/homeproxy/client.js:205
+#: htdocs/luci-static/resources/view/homeproxy/client.js:615
+msgid "List of nodes for fallback in order."
+msgstr "List of nodes for fallback in order."
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:168
+#: htdocs/luci-static/resources/view/homeproxy/client.js:219
+#: htdocs/luci-static/resources/view/homeproxy/client.js:649
+msgid "The health check interval in seconds."
+msgstr "The health check interval in seconds."
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:656
+msgid "The health check timeout in milliseconds."
+msgstr "The health check timeout in milliseconds."
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:629
+msgid "The URL to probe."
+msgstr "The URL to probe."
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:958
 msgid "The address of the dns server."

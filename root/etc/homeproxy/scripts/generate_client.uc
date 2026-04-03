@@ -20,6 +20,7 @@ import {
 const ubus = connect();
 
 /* const features = ubus.call('luci.homeproxy', 'singbox_get_features') || {}; */
+const FALLBACK_EXTERNAL_CONTROLLER = '127.0.0.1:5334';
 
 /* UCI config start */
 const uci = cursor();
@@ -58,7 +59,8 @@ let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outb
     domain_strategy, sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
-    proxy_domain_list;
+    proxy_domain_list, uses_fallback;
+uses_fallback = false;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -343,6 +345,30 @@ function generate_outbound(node) {
 	return outbound;
 }
 
+function append_unique_nodes(group_nodes, nodes) {
+	if (isEmpty(nodes))
+		return group_nodes;
+
+	for (let i in nodes)
+		if (!~index(group_nodes, i))
+			push(group_nodes, i);
+
+	return group_nodes;
+}
+
+function generate_fallback_outbound(tag, nodes, interrupt_exist_connections) {
+	if (isEmpty(nodes))
+		die(sprintf("%s's fallback nodes is missing, please check your configuration.", tag));
+
+	return {
+		type: 'selector',
+		tag: tag,
+		outbounds: map(nodes, (k) => `cfg-${k}-out`),
+		default: `cfg-${nodes[0]}-out`,
+		interrupt_exist_connections: interrupt_exist_connections
+	};
+}
+
 function get_outbound(cfg) {
 	if (isEmpty(cfg))
 		return null;
@@ -364,7 +390,7 @@ function get_outbound(cfg) {
 			const node = uci.get(uciconfig, cfg, 'node');
 			if (isEmpty(node))
 				die(sprintf("%s's node is missing, please check your configuration.", cfg));
-			else if (node === 'urltest')
+			else if (node in ['urltest', 'fallback'])
 				return 'cfg-' + cfg + '-out';
 			else
 				return 'cfg-' + node + '-out';
@@ -667,7 +693,7 @@ config.outbounds = [
 
 /* Main outbounds */
 if (!isEmpty(main_node)) {
-	let urltest_nodes = [];
+	let group_nodes = [];
 
 	if (main_node === 'urltest') {
 		const main_urltest_nodes = uci.get(uciconfig, ucimain, 'main_urltest_nodes') || [];
@@ -682,7 +708,13 @@ if (!isEmpty(main_node)) {
 			tolerance: strToInt(main_urltest_tolerance),
 			idle_timeout: (strToInt(main_urltest_interval) > 1800) ? `${main_urltest_interval * 2}s` : null,
 		});
-		urltest_nodes = main_urltest_nodes;
+		group_nodes = append_unique_nodes(group_nodes, main_urltest_nodes);
+	} else if (main_node === 'fallback') {
+		const main_fallback_nodes = uci.get(uciconfig, ucimain, 'main_fallback_nodes') || [];
+
+		push(config.outbounds, generate_fallback_outbound('main-out', main_fallback_nodes, false));
+		group_nodes = append_unique_nodes(group_nodes, main_fallback_nodes);
+		uses_fallback = true;
 	} else {
 		const main_node_cfg = uci.get_all(uciconfig, main_node) || {};
 		if (main_node_cfg.type === 'wireguard') {
@@ -707,7 +739,13 @@ if (!isEmpty(main_node)) {
 			tolerance: strToInt(main_udp_urltest_tolerance),
 			idle_timeout: (strToInt(main_udp_urltest_interval) > 1800) ? `${main_udp_urltest_interval * 2}s` : null,
 		});
-		urltest_nodes = [...urltest_nodes, ...filter(main_udp_urltest_nodes, (l) => !~index(urltest_nodes, l))];
+		group_nodes = append_unique_nodes(group_nodes, main_udp_urltest_nodes);
+	} else if (main_udp_node === 'fallback') {
+		const main_udp_fallback_nodes = uci.get(uciconfig, ucimain, 'main_udp_fallback_nodes') || [];
+
+		push(config.outbounds, generate_fallback_outbound('main-udp-out', main_udp_fallback_nodes, false));
+		group_nodes = append_unique_nodes(group_nodes, main_udp_fallback_nodes);
+		uses_fallback = true;
 	} else if (dedicated_udp_node) {
 		const main_udp_node_cfg = uci.get_all(uciconfig, main_udp_node) || {};
 		if (main_udp_node_cfg.type === 'wireguard') {
@@ -719,18 +757,18 @@ if (!isEmpty(main_node)) {
 		}
 	}
 
-	for (let i in urltest_nodes) {
-		const urltest_node = uci.get_all(uciconfig, i) || {};
-		if (urltest_node.type === 'wireguard') {
-			push(config.endpoints, generate_endpoint(urltest_node));
+	for (let i in group_nodes) {
+		const group_node = uci.get_all(uciconfig, i) || {};
+		if (group_node.type === 'wireguard') {
+			push(config.endpoints, generate_endpoint(group_node));
 			config.endpoints[length(config.endpoints)-1].tag = 'cfg-' + i + '-out';
 		} else {
-			push(config.outbounds, generate_outbound(urltest_node));
+			push(config.outbounds, generate_outbound(group_node));
 			config.outbounds[length(config.outbounds)-1].tag = 'cfg-' + i + '-out';
 		}
 	}
 } else if (!isEmpty(default_outbound)) {
-	let urltest_nodes = [],
+	let group_nodes = [],
 	    routing_nodes = [];
 
 	uci.foreach(uciconfig, uciroutingnode, (cfg) => {
@@ -748,7 +786,15 @@ if (!isEmpty(main_node)) {
 				idle_timeout: strToTime(cfg.urltest_idle_timeout),
 				interrupt_exist_connections: strToBool(cfg.urltest_interrupt_exist_connections)
 			});
-			urltest_nodes = [...urltest_nodes, ...filter(cfg.urltest_nodes, (l) => !~index(urltest_nodes, l))];
+			group_nodes = append_unique_nodes(group_nodes, cfg.urltest_nodes);
+		} else if (cfg.node === 'fallback') {
+			push(config.outbounds, generate_fallback_outbound(
+				'cfg-' + cfg['.name'] + '-out',
+				cfg.fallback_nodes,
+				cfg.fallback_interrupt_exist_connections === '1'
+			));
+			group_nodes = append_unique_nodes(group_nodes, cfg.fallback_nodes);
+			uses_fallback = true;
 		} else {
 			const outbound = uci.get_all(uciconfig, cfg.node) || {};
 			if (outbound.type === 'wireguard') {
@@ -774,12 +820,12 @@ if (!isEmpty(main_node)) {
 		}
 	});
 
-	for (let i in filter(urltest_nodes, (l) => !~index(routing_nodes, l))) {
-		const urltest_node = uci.get_all(uciconfig, i) || {};
-		if (urltest_node.type === 'wireguard')
-			push(config.endpoints, generate_endpoint(urltest_node));
+	for (let i in filter(group_nodes, (l) => !~index(routing_nodes, l))) {
+		const group_node = uci.get_all(uciconfig, i) || {};
+		if (group_node.type === 'wireguard')
+			push(config.endpoints, generate_endpoint(group_node));
 		else
-			push(config.outbounds, generate_outbound(urltest_node));
+			push(config.outbounds, generate_outbound(group_node));
 	}
 }
 
@@ -959,15 +1005,23 @@ if (!isEmpty(main_node)) {
 /* Routing rules end */
 
 /* Experimental start */
-if (routing_mode in ['bypass_mainland_china', 'custom']) {
-	config.experimental = {
-		cache_file: {
+if ((routing_mode in ['bypass_mainland_china', 'custom']) || uses_fallback) {
+	config.experimental = {};
+
+	if (routing_mode in ['bypass_mainland_china', 'custom']) {
+		config.experimental.cache_file = {
 			enabled: true,
 			path: RUN_DIR + '/cache.db',
 			store_rdrc: strToBool(cache_file_store_rdrc),
 			rdrc_timeout: strToTime(cache_file_rdrc_timeout),
-		}
-	};
+		};
+	}
+
+	if (uses_fallback) {
+		config.experimental.clash_api = {
+			external_controller: FALLBACK_EXTERNAL_CONTROLLER
+		};
+	}
 }
 /* Experimental end */
 

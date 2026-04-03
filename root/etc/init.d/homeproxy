@@ -27,6 +27,47 @@ log() {
 	echo -e "$(date "+%Y-%m-%d %H:%M:%S") [DAEMON] $*" >> "$LOG_PATH"
 }
 
+fallback_routing_node_found=1
+check_fallback_routing_node() {
+	local enabled node
+
+	config_get_bool enabled "$1" "enabled" "0"
+	config_get node "$1" "node"
+	if [ "$enabled" = "1" ] && [ "$node" = "fallback" ]; then
+		fallback_routing_node_found=0
+		return 1
+	fi
+}
+
+client_uses_fallback() {
+	local routing_mode main_node main_udp_node
+
+	config_get routing_mode "config" "routing_mode" "bypass_mainland_china"
+	if [ "$routing_mode" != "custom" ]; then
+		config_get main_node "config" "main_node" "nil"
+		[ "$main_node" = "fallback" ] && return 0
+
+		config_get main_udp_node "config" "main_udp_node" "nil"
+		[ "$main_udp_node" = "fallback" ] && return 0
+
+		return 1
+	fi
+
+	fallback_routing_node_found=1
+	config_foreach check_fallback_routing_node "routing_node"
+
+	return "$fallback_routing_node_found"
+}
+
+check_fallback_requirements() {
+	if ! "$PROG" version 2>"/dev/null" | grep -q "with_clash_api"; then
+		log "Error: fallback requires sing-box with with_clash_api support."
+		return 1
+	fi
+
+	return 0
+}
+
 start_service() {
 	config_load "$CONF"
 
@@ -51,6 +92,12 @@ start_service() {
 	mkdir -p "$RUN_DIR"
 
 	if [ "$outbound_node" != "nil" ]; then
+		local use_fallback="1"
+		if client_uses_fallback; then
+			use_fallback="0"
+			check_fallback_requirements || return 1
+		fi
+
 		# Generate/Validate client config
 		ucode -S "$HP_DIR/scripts/generate_client.uc" 2>>"$LOG_PATH"
 
@@ -173,6 +220,16 @@ start_service() {
 		procd_set_param respawn
 
 		procd_close_instance
+
+		if [ "$use_fallback" = "0" ]; then
+			procd_open_instance "fallback-watchdog"
+
+			procd_set_param command /usr/bin/ucode -S "$HP_DIR/scripts/fallback_watchdog.uc"
+			procd_set_param stderr 1
+			procd_set_param respawn
+
+			procd_close_instance
+		fi
 	fi
 
 	if [ "$server_enabled" = "1" ]; then

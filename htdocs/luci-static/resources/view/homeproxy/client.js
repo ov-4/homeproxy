@@ -86,6 +86,7 @@ return view.extend({
 
 		let features = data[1],
 		    hosts = data[2]?.hosts;
+		let single_proxy_node = /^((?!(urltest|fallback)$).)+$/;
 
 		/* Cache all configured proxy nodes, they will be called multiple times */
 		let proxy_nodes = {};
@@ -122,6 +123,8 @@ return view.extend({
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
 		o.value('nil', _('Disable'));
 		o.value('urltest', _('URLTest'));
+		if (features.with_clash_api)
+			o.value('fallback', _('Fallback'));
 		for (let i in proxy_nodes)
 			o.value(i, proxy_nodes[i]);
 		o.default = 'nil';
@@ -147,10 +150,51 @@ return view.extend({
 		o.placeholder = '50';
 		o.depends('main_node', 'urltest');
 
+		o = s.taboption('routing', hp.CBIStaticList, 'main_fallback_nodes', _('Fallback nodes'),
+			_('List of nodes for fallback in order.'));
+		for (let i in proxy_nodes)
+			o.value(i, proxy_nodes[i]);
+		o.depends('main_node', 'fallback');
+		o.rmempty = false;
+		o.validate = function(section_id) {
+			let value = this.section.formvalue(section_id, 'main_fallback_nodes');
+			if (section_id && !value.length)
+				return _('Expecting: %s').format(_('non-empty value'));
+
+			return true;
+		}
+
+		o = s.taboption('routing', form.Value, 'main_fallback_interval', _('Probe interval'),
+			_('The health check interval in seconds.'));
+		o.datatype = 'range(1,2147483647)';
+		o.placeholder = '30';
+		o.depends('main_node', 'fallback');
+
+		o = s.taboption('routing', form.Value, 'main_fallback_url', _('Probe URL'),
+			_('The URL to probe.'));
+		o.placeholder = 'https://www.gstatic.com/generate_204';
+		o.validate = function(section_id, value) {
+			if (section_id && value) {
+				try {
+					let url = new URL(value);
+					if (!url.hostname)
+						return _('Expecting: %s').format(_('valid URL'));
+				}
+				catch(e) {
+					return _('Expecting: %s').format(_('valid URL'));
+				}
+			}
+
+			return true;
+		}
+		o.depends('main_node', 'fallback');
+
 		o = s.taboption('routing', form.ListValue, 'main_udp_node', _('Main UDP node'));
 		o.value('nil', _('Disable'));
 		o.value('same', _('Same as main node'));
 		o.value('urltest', _('URLTest'));
+		if (features.with_clash_api)
+			o.value('fallback', _('Fallback'));
 		for (let i in proxy_nodes)
 			o.value(i, proxy_nodes[i]);
 		o.default = 'nil';
@@ -175,6 +219,45 @@ return view.extend({
 		o.datatype = 'uinteger';
 		o.placeholder = '50';
 		o.depends('main_udp_node', 'urltest');
+
+		o = s.taboption('routing', hp.CBIStaticList, 'main_udp_fallback_nodes', _('Fallback nodes'),
+			_('List of nodes for fallback in order.'));
+		for (let i in proxy_nodes)
+			o.value(i, proxy_nodes[i]);
+		o.depends('main_udp_node', 'fallback');
+		o.rmempty = false;
+		o.validate = function(section_id) {
+			let value = this.section.formvalue(section_id, 'main_udp_fallback_nodes');
+			if (section_id && !value.length)
+				return _('Expecting: %s').format(_('non-empty value'));
+
+			return true;
+		}
+
+		o = s.taboption('routing', form.Value, 'main_udp_fallback_interval', _('Probe interval'),
+			_('The health check interval in seconds.'));
+		o.datatype = 'range(1,2147483647)';
+		o.placeholder = '30';
+		o.depends('main_udp_node', 'fallback');
+
+		o = s.taboption('routing', form.Value, 'main_udp_fallback_url', _('Probe URL'),
+			_('The URL to probe.'));
+		o.placeholder = 'https://www.gstatic.com/generate_204';
+		o.validate = function(section_id, value) {
+			if (section_id && value) {
+				try {
+					let url = new URL(value);
+					if (!url.hostname)
+						return _('Expecting: %s').format(_('valid URL'));
+				}
+				catch(e) {
+					return _('Expecting: %s').format(_('valid URL'));
+				}
+			}
+
+			return true;
+		}
+		o.depends('main_udp_node', 'fallback');
 
 		o = s.taboption('routing', form.Value, 'dns_server', _('DNS server'),
 			_('Support UDP, TCP, DoH, DoQ, DoT. TCP protocol will be used if not specified.'));
@@ -419,6 +502,8 @@ return view.extend({
 		so = ss.option(form.ListValue, 'node', _('Node'),
 			_('Outbound node'));
 		so.value('urltest', _('URLTest'));
+		if (features.with_clash_api)
+			so.value('fallback', _('Fallback'));
 		for (let i in proxy_nodes)
 			so.value(i, proxy_nodes[i]);
 		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'routing_node', 'node');
@@ -440,21 +525,21 @@ return view.extend({
 
 			return this.super('load', section_id);
 		}
-		so.depends({'node': 'urltest', '!reverse': true});
+		so.depends({'node': single_proxy_node});
 		so.modalonly = true;
 
 		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
 			_('The domain strategy for resolving the domain name in the address.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
-		so.depends({'node': 'urltest', '!reverse': true});
+		so.depends({'node': single_proxy_node});
 		so.modalonly = true;
 
 		so = ss.option(widgets.DeviceSelect, 'bind_interface', _('Bind interface'),
 			_('The network interface to bind to.'));
 		so.multiple = false;
 		so.noaliases = true;
-		so.depends({'outbound': '', 'node': /^((?!urltest$).)+$/});
+		so.depends({'outbound': '', 'node': single_proxy_node});
 		so.modalonly = true;
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
@@ -482,6 +567,8 @@ return view.extend({
 							conflict = true;
 						else if (res.node === 'urltest' && res.urltest_nodes?.includes(node) && res['.name'] == value)
 							conflict = true;
+						else if (res.node === 'fallback' && res.fallback_nodes?.includes(node) && res['.name'] == value)
+							conflict = true;
 					}
 				});
 				if (conflict)
@@ -490,7 +577,7 @@ return view.extend({
 
 			return true;
 		}
-		so.depends({'node': 'urltest', '!reverse': true});
+		so.depends({'node': single_proxy_node});
 		so.editable = true;
 
 		so = ss.option(hp.CBIStaticList, 'urltest_nodes', _('URLTest nodes'),
@@ -560,6 +647,59 @@ return view.extend({
 		so = ss.option(form.Flag, 'urltest_interrupt_exist_connections', _('Interrupt existing connections'),
 			_('Interrupt existing connections when the selected outbound has changed.'));
 		so.depends('node', 'urltest');
+		so.modalonly = true;
+
+		so = ss.option(hp.CBIStaticList, 'fallback_nodes', _('Fallback nodes'),
+			_('List of nodes for fallback in order.'));
+		for (let i in proxy_nodes)
+			so.value(i, proxy_nodes[i]);
+		so.depends('node', 'fallback');
+		so.validate = function(section_id) {
+			let value = this.section.formvalue(section_id, 'fallback_nodes');
+			if (section_id && !value.length)
+				return _('Expecting: %s').format(_('non-empty value'));
+
+			return true;
+		}
+		so.modalonly = true;
+
+		so = ss.option(form.Value, 'fallback_url', _('Probe URL'),
+			_('The URL to probe.'));
+		so.placeholder = 'https://www.gstatic.com/generate_204';
+		so.validate = function(section_id, value) {
+			if (section_id && value) {
+				try {
+					let url = new URL(value);
+					if (!url.hostname)
+						return _('Expecting: %s').format(_('valid URL'));
+				}
+				catch(e) {
+					return _('Expecting: %s').format(_('valid URL'));
+				}
+			}
+
+			return true;
+		}
+		so.depends('node', 'fallback');
+		so.modalonly = true;
+
+		so = ss.option(form.Value, 'fallback_interval', _('Probe interval'),
+			_('The health check interval in seconds.'));
+		so.datatype = 'range(1,2147483647)';
+		so.placeholder = '30';
+		so.depends('node', 'fallback');
+		so.modalonly = true;
+
+		so = ss.option(form.Value, 'fallback_timeout', _('Probe timeout'),
+			_('The health check timeout in milliseconds.'));
+		so.datatype = 'range(1,2147483647)';
+		so.placeholder = '5000';
+		so.depends('node', 'fallback');
+		so.modalonly = true;
+
+		so = ss.option(form.Flag, 'fallback_interrupt_exist_connections', _('Interrupt existing connections'),
+			_('Interrupt existing connections when the selected outbound has changed.'));
+		so.depends('node', 'fallback');
 		so.modalonly = true;
 		/* Routing nodes end */
 
