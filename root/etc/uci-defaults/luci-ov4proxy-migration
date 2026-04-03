@@ -1,0 +1,5 @@
+#!/bin/sh
+
+ucode "/etc/ov4proxy/scripts/migrate_config.uc"
+
+exit 0

@@ -15,11 +15,11 @@ import { urlencode } from 'luci.http';
 
 import {
 	executeCommand, getTime, isEmpty, parseURL, RUN_DIR
-} from 'homeproxy';
+} from 'ov4proxy';
 
 const uci = cursor();
 
-const uciconfig = 'homeproxy';
+const uciconfig = 'ov4proxy';
 uci.load(uciconfig);
 
 const ucimain = 'config',
@@ -32,7 +32,7 @@ const CLASH_API_HOST = '127.0.0.1';
 const CLASH_API_PORT = 5334;
 
 function log(...args) {
-	const logfile = open(`${RUN_DIR}/homeproxy.log`, 'a');
+	const logfile = open(`${RUN_DIR}/ov4proxy.log`, 'a');
 	logfile.write(`${getTime()} [FALLBACK] ${join(' ', args)}\n`);
 	logfile.close();
 }

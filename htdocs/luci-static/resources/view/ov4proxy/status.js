@@ -29,11 +29,11 @@ const css = '				\
 	background-color: #33ccff;	\
 }';
 
-const hp_dir = '/var/run/homeproxy';
+const hp_dir = '/var/run/ov4proxy';
 
 function getConnStat(o, site) {
 	const callConnStat = rpc.declare({
-		object: 'luci.homeproxy',
+		object: 'luci.ov4proxy',
 		method: 'connection_check',
 		params: ['site'],
 		expect: { '': {} }
@@ -62,14 +62,14 @@ function getConnStat(o, site) {
 
 function getResVersion(o, type) {
 	const callResVersion = rpc.declare({
-		object: 'luci.homeproxy',
+		object: 'luci.ov4proxy',
 		method: 'resources_get_version',
 		params: ['type'],
 		expect: { '': {} }
 	});
 
 	const callResUpdate = rpc.declare({
-		object: 'luci.homeproxy',
+		object: 'luci.ov4proxy',
 		method: 'resources_update',
 		params: ['type'],
 		expect: { '': {} }
@@ -118,7 +118,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 
 	let section, log_level_el;
 	switch (filename) {
-	case 'homeproxy':
+	case 'ov4proxy':
 		section = null;
 		break;
 	case 'sing-box-c':
@@ -130,7 +130,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 	}
 
 	if (section) {
-		const selected = uci.get('homeproxy', section, 'log_level') || 'warn';
+		const selected = uci.get('ov4proxy', section, 'log_level') || 'warn';
 		const choices = {
 			trace: _('Trace'),
 			debug: _('Debug'),
@@ -146,7 +146,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 			'class': 'cbi-input-select',
 			'style': 'margin-left: 4px; width: 6em;',
 			'change': ui.createHandlerFn(this, (ev) => {
-				uci.set('homeproxy', section, 'log_level', ev.target.value);
+				uci.set('ov4proxy', section, 'log_level', ev.target.value);
 				return o.map.save(null, true).then(() => {
 					ui.changes.apply(true);
 				});
@@ -162,7 +162,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 	}
 
 	const callLogClean = rpc.declare({
-		object: 'luci.homeproxy',
+		object: 'luci.ov4proxy',
 		method: 'log_clean',
 		params: ['type'],
 		expect: { '': {} }
@@ -227,9 +227,9 @@ return view.extend({
 	render() {
 		let m, s, o;
 
-		m = new form.Map('homeproxy');
+		m = new form.Map('ov4proxy');
 
-		s = m.section(form.NamedSection, 'config', 'homeproxy', _('Connection check'));
+		s = m.section(form.NamedSection, 'config', 'ov4proxy', _('Connection check'));
 		s.anonymous = true;
 
 		o = s.option(form.DummyValue, '_check_baidu', _('BaiDu'));
@@ -238,7 +238,7 @@ return view.extend({
 		o = s.option(form.DummyValue, '_check_google', _('Google'));
 		o.cfgvalue = L.bind(getConnStat, this, o, 'google');
 
-		s = m.section(form.NamedSection, 'config', 'homeproxy', _('Resources management'));
+		s = m.section(form.NamedSection, 'config', 'ov4proxy', _('Resources management'));
 		s.anonymous = true;
 
 		o = s.option(form.DummyValue, '_china_ip4_version', _('China IPv4 list version'));
@@ -275,11 +275,11 @@ return view.extend({
 			return node;
 		}
 
-		s = m.section(form.NamedSection, 'config', 'homeproxy');
+		s = m.section(form.NamedSection, 'config', 'ov4proxy');
 		s.anonymous = true;
 
-		o = s.option(form.DummyValue, '_homeproxy_logview');
-		o.render = L.bind(getRuntimeLog, this, o, _('HomeProxy'));
+		o = s.option(form.DummyValue, '_ov4proxy_logview');
+		o.render = L.bind(getRuntimeLog, this, o, _('ov4proxy'));
 
 		o = s.option(form.DummyValue, '_sing-box-c_logview');
 		o.render = L.bind(getRuntimeLog, this, o, _('sing-box client'));

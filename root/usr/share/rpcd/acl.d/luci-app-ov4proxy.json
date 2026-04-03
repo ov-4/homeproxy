@@ -1,0 +1,24 @@
+{
+	"luci-app-ov4proxy": {
+		"description": "Grant access to ov4proxy configuration",
+		"read": {
+			"file": {
+				"/etc/ov4proxy/scripts/update_subscriptions.uc": [ "exec" ],
+				"/var/run/ov4proxy/ov4proxy.log": [ "read" ],
+				"/var/run/ov4proxy/sing-box-c.log": [ "read" ],
+				"/var/run/ov4proxy/sing-box-s.log": [ "read" ]
+			},
+			"ubus": {
+				"service": [ "list" ],
+				"luci.ov4proxy": [ "*" ]
+			},
+			"uci": [ "ov4proxy" ]
+		},
+		"write": {
+			"file": {
+				"/tmp/ov4proxy_certificate.tmp": [ "write" ]
+			},
+			"uci": [ "ov4proxy" ]
+		}
+	}
+}

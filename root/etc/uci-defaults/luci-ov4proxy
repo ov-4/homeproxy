@@ -1,0 +1,31 @@
+#!/bin/sh
+
+[ -f "/www/luci-static/resources/icons/loading.gif" ] && \
+	sed -i "s,/loading.svg,/loading.gif,g" "/www/luci-static/resources/view/ov4proxy/status.js"
+
+uci -q batch <<-EOF >"/dev/null"
+	delete firewall.ov4proxy_pre
+
+	delete firewall.ov4proxy_forward
+	set firewall.ov4proxy_forward=include
+	set firewall.ov4proxy_forward.type=nftables
+	set firewall.ov4proxy_forward.path="/var/run/ov4proxy/fw4_forward.nft"
+	set firewall.ov4proxy_forward.position="chain-pre"
+	set firewall.ov4proxy_forward.chain="forward"
+
+	delete firewall.ov4proxy_input
+	set firewall.ov4proxy_input=include
+	set firewall.ov4proxy_input.type=nftables
+	set firewall.ov4proxy_input.path="/var/run/ov4proxy/fw4_input.nft"
+	set firewall.ov4proxy_input.position="chain-pre"
+	set firewall.ov4proxy_input.chain="input"
+
+	delete firewall.ov4proxy_post
+	set firewall.ov4proxy_post=include
+	set firewall.ov4proxy_post.type=nftables
+	set firewall.ov4proxy_post.path="/var/run/ov4proxy/fw4_post.nft"
+	set firewall.ov4proxy_post.position="table-post"
+	commit firewall
+EOF
+
+exit 0

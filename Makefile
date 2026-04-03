@@ -13,14 +13,14 @@ LUCI_DEPENDS:= \
 	+ucode-mod-digest \
 	+ucode-mod-socket
 
-PKG_NAME:=luci-app-homeproxy
+PKG_NAME:=luci-app-ov4proxy
 
-define Package/luci-app-homeproxy/conffiles
-/etc/config/homeproxy
-/etc/homeproxy/certs/
-/etc/homeproxy/ruleset/
-/etc/homeproxy/resources/direct_list.txt
-/etc/homeproxy/resources/proxy_list.txt
+define Package/luci-app-ov4proxy/conffiles
+/etc/config/ov4proxy
+/etc/ov4proxy/certs/
+/etc/ov4proxy/ruleset/
+/etc/ov4proxy/resources/direct_list.txt
+/etc/ov4proxy/resources/proxy_list.txt
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk

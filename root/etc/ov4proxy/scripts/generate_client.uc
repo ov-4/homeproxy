@@ -15,17 +15,17 @@ import { cursor } from 'uci';
 import {
 	isEmpty, parseURL, strToBool, strToInt, strToTime,
 	removeBlankAttrs, validation, HP_DIR, RUN_DIR
-} from 'homeproxy';
+} from 'ov4proxy';
 
 const ubus = connect();
 
-/* const features = ubus.call('luci.homeproxy', 'singbox_get_features') || {}; */
+/* const features = ubus.call('luci.ov4proxy', 'singbox_get_features') || {}; */
 const FALLBACK_EXTERNAL_CONTROLLER = '127.0.0.1:5334';
 
 /* UCI config start */
 const uci = cursor();
 
-const uciconfig = 'homeproxy';
+const uciconfig = 'ov4proxy';
 uci.load(uciconfig);
 
 const uciinfra = 'infra',

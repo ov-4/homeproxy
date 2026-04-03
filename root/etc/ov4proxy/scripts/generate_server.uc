@@ -13,12 +13,12 @@ import { cursor } from 'uci';
 import {
 	isEmpty, strToBool, strToInt, strToTime,
 	removeBlankAttrs, HP_DIR, RUN_DIR
-} from 'homeproxy';
+} from 'ov4proxy';
 
 /* UCI config start */
 const uci = cursor();
 
-const uciconfig = 'homeproxy';
+const uciconfig = 'ov4proxy';
 uci.load(uciconfig);
 
 const uciserver = 'server';

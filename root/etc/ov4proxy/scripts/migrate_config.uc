@@ -8,11 +8,11 @@
 'use strict';
 
 import { cursor } from 'uci';
-import { isEmpty, parseURL } from 'homeproxy';
+import { isEmpty, parseURL } from 'ov4proxy';
 
 const uci = cursor();
 
-const uciconfig = 'homeproxy';
+const uciconfig = 'ov4proxy';
 uci.load(uciconfig);
 
 const uciinfra = 'infra',

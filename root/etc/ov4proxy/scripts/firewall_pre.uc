@@ -4,9 +4,9 @@
 
 import { writefile } from 'fs';
 import { cursor } from 'uci';
-import { isEmpty, RUN_DIR } from 'homeproxy';
+import { isEmpty, RUN_DIR } from 'ov4proxy';
 
-const cfgname = 'homeproxy';
+const cfgname = 'ov4proxy';
 const uci = cursor();
 uci.load(cfgname);
 

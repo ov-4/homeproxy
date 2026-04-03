@@ -1,45 +1,45 @@
 {
-	"admin/services/homeproxy": {
-		"title": "HomeProxy",
+	"admin/services/ov4proxy": {
+		"title": "ov4proxy",
 		"order": 10,
 		"action": {
 			"type": "firstchild"
 		},
 		"depends": {
-			"acl": [ "luci-app-homeproxy" ],
-			"uci": { "homeproxy": true }
+			"acl": [ "luci-app-ov4proxy" ],
+			"uci": { "ov4proxy": true }
 		}
 	},
-	"admin/services/homeproxy/client": {
+	"admin/services/ov4proxy/client": {
 		"title": "Client Settings",
 		"order": 10,
 		"action": {
 			"type": "view",
-			"path": "homeproxy/client"
+			"path": "ov4proxy/client"
 		}
 	},
-	"admin/services/homeproxy/node": {
+	"admin/services/ov4proxy/node": {
 		"title": "Node Settings",
 		"order": 15,
 		"action": {
 			"type": "view",
-			"path": "homeproxy/node"
+			"path": "ov4proxy/node"
 		}
 	},
-	"admin/services/homeproxy/server": {
+	"admin/services/ov4proxy/server": {
 		"title": "Server Settings",
 		"order": 20,
 		"action": {
 			"type": "view",
-			"path": "homeproxy/server"
+			"path": "ov4proxy/server"
 		}
 	},
-	"admin/services/homeproxy/status": {
+	"admin/services/ov4proxy/status": {
 		"title": "Service Status",
 		"order": 30,
 		"action": {
 			"type": "view",
-			"path": "homeproxy/status"
+			"path": "ov4proxy/status"
 		}
 	}
 }
